@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gis-demo-green
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gis-demo
+      version: green
+  template:
+    metadata:
+      labels:
+        app: gis-demo
+        version: green
+    spec:
+      containers:
+      - name: gis-demo
+        image: us-east1-docker.pkg.dev/gis-demo-498621/gis-demo/gis-demo:green
+        ports:
+        - containerPort: 8000
+        env:
+        - name: VERSION
+          value: "green"
