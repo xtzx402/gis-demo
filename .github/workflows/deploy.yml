@@ -1,0 +1,45 @@
+name: Build and Deploy to GKE
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  PROJECT_ID: gis-demo-498621
+  REGION: us-east1
+  CLUSTER: gis-demo-cluster
+  ZONE: us-east1-b
+  IMAGE: us-east1-docker.pkg.dev/gis-demo-498621/gis-demo/gis-demo
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+    - name: Build and push image
+      run: |
+        docker build -t ${{ env.IMAGE }}:${{ github.sha }} .
+        docker push ${{ env.IMAGE }}:${{ github.sha }}
+
+    - name: Get GKE credentials
+      run: |
+        gcloud container clusters get-credentials ${{ env.CLUSTER }} \
+          --zone ${{ env.ZONE }} \
+          --project ${{ env.PROJECT_ID }}
+
+    - name: Deploy to GKE
+      run: |
+        kubectl set image deployment/gis-demo-blue \
+          gis-demo=${{ env.IMAGE }}:${{ github.sha }}
+        kubectl rollout status deployment/gis-demo-blue
